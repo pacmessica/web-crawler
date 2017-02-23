@@ -3,9 +3,15 @@ package main
 import (
   "fmt"
   "log"
+  "encoding/json"
 
   "github.com/streadway/amqp"
 )
+
+type Page struct {
+  Url string
+  Body string
+}
 
 func failOnError(err error, msg string) {
   if err != nil {
@@ -49,7 +55,9 @@ func main() {
 
   go func() {
     for data := range msgs {
-      log.Printf("Received a message: %s", data.Body)
+      var page Page
+      json.Unmarshal([]byte(data.Body), &page)
+      log.Printf("Received a message: %s", page.Url)
     }
   }()
 

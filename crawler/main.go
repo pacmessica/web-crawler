@@ -5,6 +5,7 @@ import (
   "net/http"
   "time"
   "log"
+  "encoding/json"
 
   "github.com/PuerkitoBio/gocrawl"
   "github.com/PuerkitoBio/goquery"
@@ -82,6 +83,8 @@ func main() {
 
   for page := range pagechan {
     // push page to RabbitMQ
+    body, err := json.Marshal(page)
+    failOnError(err, "Failed to convert page to json")
     err = ch.Publish(
       "",     // exchange
       q.Name, // routing key
@@ -89,9 +92,9 @@ func main() {
       false,  // immediate
       amqp.Publishing {
         ContentType: "text/plain",
-        Body:        []byte(page.Url),
+        Body:        []byte(body),
       })
-    log.Printf(" [x] Sent %s", page.Url)
+    log.Printf(" [x] Sent page %s", page.Url)
     failOnError(err, "Failed to publish a message")
   }
 }
