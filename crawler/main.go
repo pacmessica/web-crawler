@@ -1,7 +1,5 @@
 package main
 
-// run RabbitMQ server in the console: $ rabbitmq-server
-
 import (
   "fmt"
   "net/http"
