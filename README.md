@@ -18,4 +18,5 @@ gopkg.in/redis.v5
 github.com/PuerkitoBio/gocrawl
 github.com/PuerkitoBio/goquery
 github.com/streadway/amqp
+golang.org/x/net/html
 ```

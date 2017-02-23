@@ -5,9 +5,11 @@ import (
   "log"
   "encoding/json"
   "strconv"
+  "strings"
 
   "github.com/streadway/amqp"
   "gopkg.in/redis.v5"
+  "golang.org/x/net/html"
 )
 
 type Page struct {
@@ -19,6 +21,21 @@ func failOnError(err error, msg string) {
   if err != nil {
     log.Fatalf("%s: %s", msg, err)
     panic(fmt.Sprintf("%s: %s", msg, err))
+  }
+}
+
+func parseHtml(page string) (string){
+  z := html.NewTokenizer(strings.NewReader(page))
+  for {
+    tokenType := z.Next()
+    switch tokenType {
+    case html.ErrorToken:
+      // return z.Err()
+      // fmt.Println("error", z.Err())
+    case html.TextToken:
+      token := z.Token()
+      fmt.Println("foooo!", token.Data)
+    }
   }
 }
 
@@ -52,7 +69,7 @@ func main() {
   pong, err := client.Ping().Result()
   fmt.Println(pong, err)
 
-   //consume messages from RabbitMQ as msgs
+  //consume messages from RabbitMQ as msgs
 
   msgs, err := ch.Consume(
     q.Name, // queue
@@ -80,6 +97,7 @@ func main() {
       pagedata["body"] = page.Body
       err := client.HMSet("webpage:"+strconv.Itoa(pageId), pagedata).Err()
       failOnError(err, "Failed to save page")
+      parseHtml(page.Body)
     }()
   }
 
