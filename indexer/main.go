@@ -4,8 +4,10 @@ import (
   "fmt"
   "log"
   "encoding/json"
+  "strconv"
 
   "github.com/streadway/amqp"
+  "gopkg.in/redis.v5"
 )
 
 type Page struct {
@@ -40,6 +42,18 @@ func main() {
   )
   failOnError(err, "Failed to declare a queue")
 
+  // connect to redis
+  client := redis.NewClient(&redis.Options{
+    Addr:     "localhost:6379",
+    Password: "", // no password set
+    DB:       0,  // use default DB
+  })
+
+  pong, err := client.Ping().Result()
+  fmt.Println(pong, err)
+
+   //consume messages from RabbitMQ as msgs
+
   msgs, err := ch.Consume(
     q.Name, // queue
     "",     // consumer
@@ -53,13 +67,21 @@ func main() {
 
   loop := make(chan bool)
 
-  go func() {
-    for data := range msgs {
-      var page Page
-      json.Unmarshal([]byte(data.Body), &page)
-      log.Printf("Received a message: %s", page.Url)
-    }
-  }()
+  var pageId int
+  for data := range msgs {
+    var page Page
+    json.Unmarshal([]byte(data.Body), &page)
+    log.Printf("Received a message: %s", page.Url)
+    // save page to redis as `webpage:${pageId}`
+    go func() {
+      pageId += 1
+      pagedata := make(map[string]string)
+      pagedata["url"] = page.Url
+      pagedata["body"] = page.Body
+      err := client.HMSet("webpage:"+strconv.Itoa(pageId), pagedata).Err()
+      failOnError(err, "Failed to save page")
+    }()
+  }
 
   log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
   <-loop
