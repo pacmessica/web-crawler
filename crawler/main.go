@@ -11,10 +11,19 @@ import (
 
 type Ext struct {
 	*gocrawl.DefaultExtender
+	PageChannel chan Page
+}
+
+type Page struct {
+	Url string
+	Body string
 }
 
 func (e *Ext) Visit(ctx *gocrawl.URLContext, res *http.Response, doc *goquery.Document) (interface{}, bool) {
 	fmt.Printf("Visit: %s\n", ctx.URL())
+	url := fmt.Sprintf("%s", ctx.URL())
+	body := fmt.Sprintf("%s", res.Body)
+	e.PageChannel <- Page{url, body}
 	return nil, true
 }
 
@@ -29,7 +38,9 @@ func (e *Ext) Filter(ctx *gocrawl.URLContext, isVisited bool) bool {
 }
 
 func main() {
-	ext := &Ext{&gocrawl.DefaultExtender{}}
+	pagechan := make(chan Page)
+	//crawl
+	ext := &Ext{&gocrawl.DefaultExtender{}, pagechan}
 	// Set custom options
 	opts := gocrawl.NewOptions(ext)
 	opts.CrawlDelay = 1 * time.Second
@@ -38,5 +49,9 @@ func main() {
 	opts.MaxVisits = 100
 
 	c := gocrawl.NewCrawlerWithOptions(opts)
-	c.Run("http://0value.com")
+	go c.Run("http://0value.com")
+
+	for p := range pagechan {
+		fmt.Println("from channel: ", p.Url)
+	}
 }
