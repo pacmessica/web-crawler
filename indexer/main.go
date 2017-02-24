@@ -24,8 +24,8 @@ func failOnError(err error, msg string) {
   }
 }
 
-func parseHtml(page string) (string){
-  z := html.NewTokenizer(strings.NewReader(page))
+func getTextFromHtml(body string, ch chan string) (string){
+  z := html.NewTokenizer(strings.NewReader(body))
   for {
     tokenType := z.Next()
     switch tokenType {
@@ -34,8 +34,26 @@ func parseHtml(page string) (string){
       // fmt.Println("error", z.Err())
     case html.TextToken:
       token := z.Token()
-      fmt.Println("foooo!", token.Data)
+      data := strings.TrimSpace(token.Data)
+      if len(data) != 0 {
+        ch <- data
+      }
+      // fmt.Println("token", token)
     }
+  }
+}
+
+func saveWords(pageId int, data []byte, client *redis.Client) {
+  var page Page
+  json.Unmarshal([]byte(data), &page)
+  ch := make(chan string)
+  go getTextFromHtml(page.Body, ch)
+  for word := range ch {
+    // TODO save individual words, not sentences
+    fmt.Println("word!", word)
+    // saved in db as key: `word:${word}:pageIds` value: set of pageIds
+    err := client.SAdd("word:"+word+":pageIds", strconv.Itoa(pageId)).Err()
+    failOnError(err, "Failed to save word")
   }
 }
 
@@ -46,10 +64,9 @@ func saveWebpage(pageId int, data []byte, client *redis.Client) {
   pagedata := make(map[string]string)
   pagedata["url"] = page.Url
   pagedata["body"] = page.Body
-  // save page to redis as `webpage:${pageId}`
-  err := client.HMSet("webpage:"+strconv.Itoa(pageId), pagedata).Err()
+  // save page to redis as `page:${pageId}`
+  err := client.HMSet("page:"+strconv.Itoa(pageId), pagedata).Err()
   failOnError(err, "Failed to save page")
-  parseHtml(page.Body)
 }
 
 func main() {
@@ -102,6 +119,7 @@ func main() {
     log.Printf("Received a message")
     pageId += 1
     go saveWebpage(pageId, data.Body, client)
+    go saveWords(pageId, data.Body, client)
   }
 
   log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
