@@ -39,6 +39,19 @@ func parseHtml(page string) (string){
   }
 }
 
+func saveWebpage(pageId int, data []byte, client *redis.Client) {
+  var page Page
+  json.Unmarshal([]byte(data), &page)
+  log.Printf("Saving page: %s", page.Url)
+  pagedata := make(map[string]string)
+  pagedata["url"] = page.Url
+  pagedata["body"] = page.Body
+  // save page to redis as `webpage:${pageId}`
+  err := client.HMSet("webpage:"+strconv.Itoa(pageId), pagedata).Err()
+  failOnError(err, "Failed to save page")
+  parseHtml(page.Body)
+}
+
 func main() {
   // connect to RabbitMQ
   conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
@@ -88,18 +101,7 @@ func main() {
   for data := range msgs {
     log.Printf("Received a message")
     pageId += 1
-    // save page to redis as `webpage:${pageId}`
-    go func(pageId int) {
-      var page Page
-      json.Unmarshal([]byte(data.Body), &page)
-      log.Printf("Saving page: %s", page.Url)
-      pagedata := make(map[string]string)
-      pagedata["url"] = page.Url
-      pagedata["body"] = page.Body
-      err := client.HMSet("webpage:"+strconv.Itoa(pageId), pagedata).Err()
-      failOnError(err, "Failed to save page")
-      parseHtml(page.Body)
-    }(pageId)
+    go saveWebpage(pageId, data.Body, client)
   }
 
   log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
