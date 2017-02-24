@@ -6,6 +6,7 @@ import (
   "encoding/json"
   "strconv"
   "strings"
+  "regexp"
 
   "github.com/streadway/amqp"
   "gopkg.in/redis.v5"
@@ -17,6 +18,13 @@ type Page struct {
   Body string
 }
 
+var (
+  // may want to improve
+  // possible matches include: "hello", "I'm", "house-boat", "-'---"
+  // non-matches: "CSS3", "Je$$ica"
+  wordsRegex = regexp.MustCompile(`[a-zA-Z\-']+`)
+)
+
 func failOnError(err error, msg string) {
   if err != nil {
     log.Fatalf("%s: %s", msg, err)
@@ -24,7 +32,8 @@ func failOnError(err error, msg string) {
   }
 }
 
-func getTextFromHtml(body string, ch chan string) (string){
+
+func getWordsFromHtml(body string, ch chan string) (string){
   z := html.NewTokenizer(strings.NewReader(body))
   for {
     tokenType := z.Next()
@@ -34,11 +43,10 @@ func getTextFromHtml(body string, ch chan string) (string){
       // fmt.Println("error", z.Err())
     case html.TextToken:
       token := z.Token()
-      data := strings.TrimSpace(token.Data)
-      if len(data) != 0 {
-        ch <- data
+      words := wordsRegex.FindAllSubmatch([]byte(token.Data), -1)
+      for _, word := range words {
+        ch <- strings.ToLower(string(word[0]))
       }
-      // fmt.Println("token", token)
     }
   }
 }
@@ -47,9 +55,8 @@ func saveWords(pageId int, data []byte, client *redis.Client) {
   var page Page
   json.Unmarshal([]byte(data), &page)
   ch := make(chan string)
-  go getTextFromHtml(page.Body, ch)
+  go getWordsFromHtml(page.Body, ch)
   for word := range ch {
-    // TODO save individual words, not sentences
     fmt.Println("word!", word)
     // saved in db as key: `word:${word}:pageIds` value: set of pageIds
     err := client.SAdd("word:"+word+":pageIds", strconv.Itoa(pageId)).Err()
