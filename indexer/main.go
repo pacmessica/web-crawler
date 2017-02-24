@@ -86,19 +86,20 @@ func main() {
 
   var pageId int
   for data := range msgs {
-    var page Page
-    json.Unmarshal([]byte(data.Body), &page)
-    log.Printf("Received a message: %s", page.Url)
+    log.Printf("Received a message")
+    pageId += 1
     // save page to redis as `webpage:${pageId}`
-    go func() {
-      pageId += 1
+    go func(pageId int) {
+      var page Page
+      json.Unmarshal([]byte(data.Body), &page)
+      log.Printf("Saving page: %s", page.Url)
       pagedata := make(map[string]string)
       pagedata["url"] = page.Url
       pagedata["body"] = page.Body
       err := client.HMSet("webpage:"+strconv.Itoa(pageId), pagedata).Err()
       failOnError(err, "Failed to save page")
       parseHtml(page.Body)
-    }()
+    }(pageId)
   }
 
   log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
