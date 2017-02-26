@@ -117,20 +117,6 @@ func main() {
   pong, err := client.Ping().Result()
   fmt.Println(pong, err)
 
-  // initialize service
-  service := micro.NewService(
-    micro.Name("pagegetter"),
-    micro.Version("latest"),
-  )
-
-  service.Init()
-
-  proto.RegisterPageGetterHandler(service.Server(), new(PageGetter))
-
-  if err := service.Run(); err != nil {
-    log.Fatal(err)
-  }
-
   //consume messages from RabbitMQ as msgs
 
   msgs, err := ch.Consume(
@@ -144,16 +130,28 @@ func main() {
   )
   failOnError(err, "Failed to register a consumer")
 
-  loop := make(chan bool)
-
   var pageId int
-  for data := range msgs {
-    log.Printf("Received a message")
-    pageId += 1
-    go saveWebpage(pageId, data.Body, client)
-    go saveWords(pageId, data.Body, client)
-  }
-
+  go func() {
+    for data := range msgs {
+      log.Printf("Received a message")
+      pageId += 1
+      go saveWebpage(pageId, data.Body, client)
+      go saveWords(pageId, data.Body, client)
+    }
+  }()
   log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-  <-loop
+
+  // initialize service
+  service := micro.NewService(
+    micro.Name("pagegetter"),
+    micro.Version("latest"),
+  )
+
+  service.Init()
+
+  proto.RegisterPageGetterHandler(service.Server(), new(PageGetter))
+
+  if err := service.Run(); err != nil {
+    log.Fatal(err)
+  }
 }
