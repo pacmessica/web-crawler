@@ -21,13 +21,18 @@ type Page struct {
   Body string
 }
 
-type PageGetter struct{}
+type PageGetter struct {
+  client *redis.Client
+}
 
 func (g *PageGetter) GetPagesFromQuery(ctx context.Context, req *proto.Request, rsp *proto.Result) error {
+  members := g.client.SMembers("word:log:pageIds")
+  fmt.Println("members", members)
   ids := []string{"66", "33"}
   rsp.Pageids = ids
   return nil
 }
+
 
 var (
   // may want to improve
@@ -149,7 +154,9 @@ func main() {
 
   service.Init()
 
-  proto.RegisterPageGetterHandler(service.Server(), new(PageGetter))
+  proto.RegisterPageGetterHandler(service.Server(), &PageGetter{
+    client: client,
+  })
 
   if err := service.Run(); err != nil {
     log.Fatal(err)
