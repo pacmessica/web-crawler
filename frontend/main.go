@@ -22,9 +22,18 @@ func main() {
 		"X-From-Id": "script",
 	})
 
-	// Make request
-	rsp, err := cl.GetPagesFromQuery(ctx, &pf.Request{
-		Query: "this is a query",
+  // Make request
+  rsp, err := cl.GetPagesFromQuery(ctx, &pf.Request {
+    // example queries
+		// Search: &pf.Search { Term: "test" },
+    Id: "query1",
+    Search: &pf.Search {
+      And: &pf.Search_And {
+        Search: []*pf.Search {
+          &pf.Search { Term: "test" },
+        },
+      },
+    },
 	})
   if err != nil {
     fmt.Println(err)

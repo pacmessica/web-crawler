@@ -4,10 +4,24 @@ service PageGetter {
 	rpc GetPagesFromQuery(Request) returns (Result) {}
 }
 
-message Request {
-	string query = 1;
-}
-
 message Result {
 	repeated string pageids = 1;
+}
+
+message Request {
+	string id = 1;
+	Search search = 2;
+}
+
+message Search {
+	message Or {
+		repeated Search search = 1;
+	}
+	message And {
+		repeated Search search = 1;
+	}
+	Or or = 1;
+	And and = 2;
+	string term = 3;
+	string phrase = 4;
 }
