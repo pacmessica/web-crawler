@@ -20,3 +20,11 @@ github.com/PuerkitoBio/goquery
 github.com/streadway/amqp
 golang.org/x/net/html
 ```
+
+4) Run the services:
+
+```
+go run crawler/main.go
+go run indexer/main.go --registry=mdns
+go run frontend/main.go --registry=mdns
+```

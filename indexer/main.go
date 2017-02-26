@@ -11,11 +11,22 @@ import (
   "github.com/streadway/amqp"
   "gopkg.in/redis.v5"
   "golang.org/x/net/html"
+  "github.com/micro/go-micro"
+  proto "github.com/pacmessica/indexer/proto"
+  "golang.org/x/net/context"
 )
 
 type Page struct {
   Url string
   Body string
+}
+
+type PageGetter struct{}
+
+func (g *PageGetter) GetPagesFromQuery(ctx context.Context, req *proto.Request, rsp *proto.Result) error {
+  ids := []string{"66", "33"}
+  rsp.Pageids = ids
+  return nil
 }
 
 var (
@@ -105,6 +116,20 @@ func main() {
 
   pong, err := client.Ping().Result()
   fmt.Println(pong, err)
+
+  // initialize service
+  service := micro.NewService(
+    micro.Name("pagegetter"),
+    micro.Version("latest"),
+  )
+
+  service.Init()
+
+  proto.RegisterPageGetterHandler(service.Server(), new(PageGetter))
+
+  if err := service.Run(); err != nil {
+    log.Fatal(err)
+  }
 
   //consume messages from RabbitMQ as msgs
 

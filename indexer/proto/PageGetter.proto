@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+service PageGetter {
+	rpc GetPagesFromQuery(Request) returns (Result) {}
+}
+
+message Request {
+	string query = 1;
+}
+
+message Result {
+	repeated string pageids = 1;
+}
