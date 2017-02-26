@@ -26,12 +26,49 @@ type PageGetter struct {
 }
 
 func (g *PageGetter) GetPagesFromQuery(ctx context.Context, req *proto.Request, rsp *proto.Result) error {
-  members := g.client.SMembers("word:log:pageIds")
-  fmt.Println("members", members)
+  log.Printf("[GetPagesFromQuery] Request: %s", req)
+  terms := resolveRequest(req.Search)
+  fmt.Println("PageGetter!!!", terms)
+  // for _, q := range req.Search.And.Search {
+  //   fmt.Println("SUP", q)
+  // }
+  // members := g.client.SMembers("word:log:pageIds")
+  // fmt.Println("members", members)
   ids := []string{"66", "33"}
   rsp.Pageids = ids
   return nil
 }
+
+func resolveRequest(req *proto.Search) ([]string){
+  var terms []string
+  switch {
+  case req.Term != "":
+    fmt.Println("TERM")
+    terms = append(terms, req.Term)
+  case req.And != nil:
+    fmt.Println("AND")
+    terms = resolveAnd(req.And)
+  // case &proto.Search_Or:
+  //   resolveOr(req.Search_Or)
+  }
+  return terms
+}
+//
+func resolveAnd(req *proto.Search_And) ([]string){
+  var terms []string
+  for _, q := range req.Search {
+    // fmt.Println("resolveAnd", q)
+    term := resolveRequest(q)
+    // fmt.Println("fooo", term)
+    terms = append(terms, term[0])
+  }
+  fmt.Println("AND TERMS", terms)
+  return terms
+}
+
+// func resolveOr(req *proto.Search_Or) {
+//
+// }
 
 
 var (
