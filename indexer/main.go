@@ -27,8 +27,8 @@ type PageGetter struct {
 
 func (g *PageGetter) GetPagesFromQuery(ctx context.Context, req *proto.Request, rsp *proto.Result) error {
   log.Printf("[GetPagesFromQuery] Request: %s", req)
-  terms := resolveRequest(req.Search)
-  fmt.Println("PageGetter!!!", terms)
+  queries := getQueries(req.Search)
+  fmt.Println("PageGetter!!!", queries)
   // for _, q := range req.Search.And.Search {
   //   fmt.Println("SUP", q)
   // }
@@ -39,36 +39,67 @@ func (g *PageGetter) GetPagesFromQuery(ctx context.Context, req *proto.Request, 
   return nil
 }
 
-func resolveRequest(req *proto.Search) ([]string){
-  var terms []string
+func getQueries(req *proto.Search) ([][]string){
+  var query []string
+  var queries [][]string
   switch {
   case req.Term != "":
-    fmt.Println("TERM")
-    terms = append(terms, req.Term)
+    query = append(query, req.Term)
+    queries = append(queries, query)
   case req.And != nil:
-    fmt.Println("AND")
-    terms = resolveAnd(req.And)
-  // case &proto.Search_Or:
-  //   resolveOr(req.Search_Or)
+    queries = getAndQueries(req.And)
+  case req.Or != nil:
+    queries = getOrQueries(req.Or)
   }
-  return terms
-}
-//
-func resolveAnd(req *proto.Search_And) ([]string){
-  var terms []string
-  for _, q := range req.Search {
-    // fmt.Println("resolveAnd", q)
-    term := resolveRequest(q)
-    // fmt.Println("fooo", term)
-    terms = append(terms, term[0])
-  }
-  fmt.Println("AND TERMS", terms)
-  return terms
+  return queries
 }
 
-// func resolveOr(req *proto.Search_Or) {
-//
-// }
+func combineQueries(a [][]string, b []string) [][]string {
+  // adds query 'b' to each query in 'a'
+  combinedQuery := make([][]string, len(a))
+  for i, _ := range a {
+    combinedQuery[i] = append(a[i], b...)
+  }
+  return combinedQuery
+}
+
+func getAndQueries(req *proto.Search_And) ([][]string){
+  andQueries := make([][]string, 1)
+  for _, q := range req.Search {
+    queries := getQueries(q)
+    if len(queries) > 1 { // q looks like [[a][b][c]]
+      // if addQueries = [[x y z]], we want [[x y z a] [x y z b] [x y z c]]
+      temp := make([][]string, (len(queries)*len(andQueries)))
+      index := 0
+      for i, _ := range queries {
+        c := combineQueries(andQueries, queries[i])
+        for _, q := range c {
+          temp[index] = append(temp[index], q...)
+          index++
+        }
+      }
+      andQueries = temp
+    } else { // q looks like [[a b c]]
+      for i:=0; i<len(andQueries); i++ {
+        // add q to each query in addQueries
+        // if addQueries = [[x y z]], we want [[x y z a b c]]
+        andQueries[i] = append(andQueries[i], queries[0]...)
+      }
+    }
+  }
+  return andQueries
+}
+
+func getOrQueries(req *proto.Search_Or) ([][]string){
+  var orQueries [][]string
+  for _, q := range req.Search {
+    queries := getQueries(q)
+    for i:=0; i<len(queries); i++ {
+      orQueries = append(orQueries, queries[i])
+    }
+  }
+  return orQueries
+}
 
 
 var (
