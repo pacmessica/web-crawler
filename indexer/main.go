@@ -39,6 +39,18 @@ func failOnError(err error, msg string) {
   }
 }
 
+func removeDuplicates(elements []string) []string {
+  encountered := map[string]bool{}
+  for v := range elements {
+    encountered[elements[v]] = true
+  }
+  var result []string
+  for key, _ := range encountered {
+    result = append(result, key)
+  }
+  return result
+}
+
 func getPageIdsForQuery(query []string, client *redis.Client, ch chan []string) {
   ids, err := client.SInter(query...).Result()
   failOnError(err, "Failed while fetching pageIds")
@@ -60,7 +72,7 @@ func getPageIdsForQueries(queries [][]string, client *redis.Client) ([]string){
     ids = append(ids, in...)
   }
   close(ch)
-  return ids
+  return removeDuplicates(ids)
 }
 
 func (g *PageGetter) GetPagesFromQuery(ctx context.Context, req *proto.Request, rsp *proto.Result) error {
