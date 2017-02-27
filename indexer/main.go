@@ -39,16 +39,34 @@ func failOnError(err error, msg string) {
   }
 }
 
+func getPageIdsForQuery(query []string, client *redis.Client, ch chan []string) {
+  ids, err := client.SInter(query...).Result()
+  failOnError(err, "Failed while fetching pageIds")
+  ch <- ids
+}
+
+func getPageIdsForQueries(queries [][]string, client *redis.Client) ([]string){
+  log.Printf("[getPageIdsForQueries] Request: %s", queries)
+  ch := make(chan []string)
+  for _, query := range queries {
+    for i, word := range query {
+      query[i] = "word:"+word+":pageIds"
+    }
+    go getPageIdsForQuery(query, client, ch)
+  }
+  var ids []string
+  for i:=0; i<len(queries); i++ {
+    in := <- ch
+    ids = append(ids, in...)
+  }
+  close(ch)
+  return ids
+}
+
 func (g *PageGetter) GetPagesFromQuery(ctx context.Context, req *proto.Request, rsp *proto.Result) error {
   log.Printf("[GetPagesFromQuery] Request: %s", req)
   queries := getQueries(req.Search)
-  fmt.Println("PageGetter!!!", queries)
-  // for _, q := range req.Search.And.Search {
-  //   fmt.Println("SUP", q)
-  // }
-  // members := g.client.SMembers("word:log:pageIds")
-  // fmt.Println("members", members)
-  ids := []string{"66", "33"}
+  ids := getPageIdsForQueries(queries, g.client)
   rsp.Pageids = ids
   return nil
 }
