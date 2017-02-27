@@ -25,6 +25,20 @@ type PageGetter struct {
   client *redis.Client
 }
 
+var (
+  // may want to improve
+  // possible matches include: "hello", "I'm", "house-boat", "-'---"
+  // non-matches: "CSS3", "Je$$ica"
+  wordsRegex = regexp.MustCompile(`[a-zA-Z\-']+`)
+)
+
+func failOnError(err error, msg string) {
+  if err != nil {
+    log.Fatalf("%s: %s", msg, err)
+    panic(fmt.Sprintf("%s: %s", msg, err))
+  }
+}
+
 func (g *PageGetter) GetPagesFromQuery(ctx context.Context, req *proto.Request, rsp *proto.Result) error {
   log.Printf("[GetPagesFromQuery] Request: %s", req)
   queries := getQueries(req.Search)
@@ -100,22 +114,6 @@ func getOrQueries(req *proto.Search_Or) ([][]string){
   }
   return orQueries
 }
-
-
-var (
-  // may want to improve
-  // possible matches include: "hello", "I'm", "house-boat", "-'---"
-  // non-matches: "CSS3", "Je$$ica"
-  wordsRegex = regexp.MustCompile(`[a-zA-Z\-']+`)
-)
-
-func failOnError(err error, msg string) {
-  if err != nil {
-    log.Fatalf("%s: %s", msg, err)
-    panic(fmt.Sprintf("%s: %s", msg, err))
-  }
-}
-
 
 func getWordsFromHtml(body string, ch chan string) (string){
   z := html.NewTokenizer(strings.NewReader(body))
