@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"net/http"
-  "fmt"
+  "encoding/json"
+  "net/http"
   "log"
 
   "github.com/micro/go-micro/client"
@@ -75,5 +75,6 @@ func getPagesFromQuery(query []byte) ([]byte, error){
   if len(rsp.Pageids) < 1 {
     return []byte("No pages found"), nil
   }
-  return []byte(rsp.Pageids[0]), nil
+  response, _ := json.Marshal(rsp.Pageids)
+  return []byte(response), nil
 }
