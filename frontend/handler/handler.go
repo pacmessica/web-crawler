@@ -11,6 +11,7 @@ import (
   pf "github.com/pacmessica/indexer/proto"
 	"golang.org/x/net/context"
   "github.com/gorilla/websocket"
+  "github.com/golang/protobuf/jsonpb"
 )
 
 var upgrader = websocket.Upgrader{}
@@ -30,7 +31,8 @@ func GetPages(w http.ResponseWriter, r *http.Request) {
       return
     }
     log.Printf("recv: %s", message)
-    response := GetPagesFromQuery(message)
+
+    response := getPagesFromQuery(message)
 
     err = conn.WriteMessage(messageType, response);
     if  err != nil {
@@ -40,7 +42,13 @@ func GetPages(w http.ResponseWriter, r *http.Request) {
   }
 }
 
-func GetPagesFromQuery(query []byte) ([]byte){
+func getPagesFromQuery(query []byte) ([]byte){
+  var requestQuery pf.Request
+  stringifiedQuery := string(query)
+  err := jsonpb.UnmarshalString(stringifiedQuery, &requestQuery);
+  if  err != nil {
+    log.Println("[GetPagesFromQuery] Error: ", err)
+  }
   // register go-micro client
   cmd.Init()
 	// Use the generated client stub
@@ -53,9 +61,7 @@ func GetPagesFromQuery(query []byte) ([]byte){
 	})
 
   // Make request
-  rsp, err := cl.GetPagesFromQuery(ctx, &pf.Request {
-    Search: &pf.Search { Term: "log" },
-  })
+  rsp, err := cl.GetPagesFromQuery(ctx, &requestQuery)
   if err != nil {
     fmt.Println(err)
     // return
