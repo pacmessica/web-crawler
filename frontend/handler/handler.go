@@ -19,7 +19,7 @@ var upgrader = websocket.Upgrader{}
 func GetPages(w http.ResponseWriter, r *http.Request) {
   conn, err := upgrader.Upgrade(w, r, nil)
   if err != nil {
-    log.Println("upgrade:", err)
+    log.Println("[GetPages] Error upgrade:", err)
     return
   }
   defer conn.Close()
@@ -27,27 +27,32 @@ func GetPages(w http.ResponseWriter, r *http.Request) {
   for {
     messageType, message, err := conn.ReadMessage()
     if err != nil {
-      log.Println("read:", err)
+      log.Println("[GetPages] Error read:", err)
       return
     }
-    log.Printf("recv: %s", message)
+    log.Printf("[GetPages] recv: %s", message)
 
-    response := getPagesFromQuery(message)
+    response, err := getPagesFromQuery(message)
+    if  err != nil {
+      log.Println("[GetPages] Error response:", err)
+      return
+    }
 
     err = conn.WriteMessage(messageType, response);
     if  err != nil {
-      log.Println("write:", err)
+      log.Println("[GetPages] Error write:", err)
       return
     }
   }
 }
 
-func getPagesFromQuery(query []byte) ([]byte){
+func getPagesFromQuery(query []byte) ([]byte, error){
   var requestQuery pf.Request
   stringifiedQuery := string(query)
   err := jsonpb.UnmarshalString(stringifiedQuery, &requestQuery);
   if  err != nil {
-    log.Println("[GetPagesFromQuery] Error: ", err)
+    log.Println("[GetPagesFromQuery] Error while unmarshaling JSON: ", err)
+    return nil, err
   }
   // register go-micro client
   cmd.Init()
@@ -68,7 +73,7 @@ func getPagesFromQuery(query []byte) ([]byte){
   }
   log.Printf("[GetPagesFromQuery] Response", rsp.Pageids)
   if len(rsp.Pageids) < 1 {
-    return []byte("No pages found")
+    return []byte("No pages found"), nil
   }
-  return []byte(rsp.Pageids[0])
+  return []byte(rsp.Pageids[0]), nil
 }
