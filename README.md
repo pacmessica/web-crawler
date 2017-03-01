@@ -28,3 +28,9 @@ go run crawler/main.go
 go run indexer/main.go --registry=mdns
 go run frontend/main.go --registry=mdns
 ```
+
+4) Go to webpage in browser:
+
+```
+http://localhost:8080/crawler.html
+```
