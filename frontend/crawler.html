@@ -8,20 +8,26 @@
 
       // Write message on receive
       serversocket.onmessage = function(e) {
-        document.getElementById('pages').innerHTML += "Pages: " + e.data + "<br>";
+        document.getElementById('pageResults').innerHTML = e.data + "<br>";
       };
 
       function senddata() {
         var data = document.getElementById('sendtext').value;
         serversocket.send(data);
-        document.getElementById('pages').innerHTML += "Word: " + data + "<br>";
+        document.getElementById('resultHeader').innerHTML = "Page results for: '" + data + "'<br>";
       }
     </script>
+    <style>
+    input {
+      display: block;
+    }
+    </style>
   </head>
   <body>
-    <div>Enter word</div>
-    <input id="sendtext" type="text" />
+    <h2>Find webpages that match your query</h2>
+    <textarea id="sendtext" cols="60" rows="10" placeholder="Enter query"></textarea>
     <input type="button" id="sendBtn" value="search" onclick="senddata()"></input>
-    <div id='pages'></div>
+    <h4 id='resultHeader'></h4>
+    <div id='pageResults'></div>
   </body>
 </html>
