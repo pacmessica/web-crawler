@@ -35,7 +35,7 @@ func GetPages(w http.ResponseWriter, r *http.Request) {
     response, err := getPagesFromQuery(message)
     if  err != nil {
       log.Println("[GetPages] Error response:", err)
-      return
+			response = []byte("error")
     }
 
     err = conn.WriteMessage(messageType, response);
@@ -68,8 +68,8 @@ func getPagesFromQuery(query []byte) ([]byte, error){
   // Make request
   rsp, err := cl.GetPagesFromQuery(ctx, &requestQuery)
   if err != nil {
-    fmt.Println(err)
-    // return
+    log.Println("[GetPagesFromQuery] Client Error:", err)
+    return nil, err
   }
   log.Printf("[GetPagesFromQuery] Response", rsp.Pageids)
   if len(rsp.Pageids) < 1 {
