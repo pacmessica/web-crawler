@@ -5,7 +5,7 @@ service PageGetter {
 }
 
 message Result {
-	repeated string pageids = 1;
+	repeated string urls = 1;
 }
 
 message Request {

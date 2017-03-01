@@ -71,10 +71,10 @@ func getPagesFromQuery(query []byte) ([]byte, error){
     log.Println("[GetPagesFromQuery] Client Error:", err)
     return nil, err
   }
-  log.Printf("[GetPagesFromQuery] Response", rsp.Pageids)
-  if len(rsp.Pageids) < 1 {
+  log.Printf("[GetPagesFromQuery] Response", rsp.Urls)
+  if len(rsp.Urls) < 1 {
     return []byte("No pages found"), nil
   }
-  response, _ := json.Marshal(rsp.Pageids)
+  response, _ := json.Marshal(rsp.Urls)
   return []byte(response), nil
 }

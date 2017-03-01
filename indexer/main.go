@@ -75,12 +75,30 @@ func getPageIdsForQueries(queries [][]string, client *redis.Client) ([]string){
   return removeDuplicates(ids)
 }
 
+func getUrlsFromPageids(ids []string, client *redis.Client) ([]string){
+  log.Printf("[getUrlsFromPageids] Request: pageIds '%s'", ids)
+  ch := make(chan string)
+  for _, pageId := range ids {
+    go func(id string) {
+      url, _ := client.HGet("page:"+id, "url").Result()
+      ch <- url
+    }(pageId)
+  }
+  var urls []string
+  for i:=0; i<len(ids); i++ {
+    urls = append(urls, <-ch)
+  }
+  close(ch)
+  return urls
+}
+
 func (g *PageGetter) GetPagesFromQuery(ctx context.Context, req *proto.Request, rsp *proto.Result) error {
   log.Printf("[GetPagesFromQuery] Request: %s", req)
   queries := getQueries(req.Search)
   ids := getPageIdsForQueries(queries, g.client)
-  log.Printf("[GetPagesFromQuery] Response: pageIds '%s'", ids)
-  rsp.Pageids = ids
+  urls := getUrlsFromPageids(ids, g.client)
+  log.Printf("[GetPagesFromQuery] Response: Fetched %d urls", len(urls))
+  rsp.Urls = urls
   return nil
 }
 
