@@ -79,6 +79,7 @@ func (g *PageGetter) GetPagesFromQuery(ctx context.Context, req *proto.Request, 
   log.Printf("[GetPagesFromQuery] Request: %s", req)
   queries := getQueries(req.Search)
   ids := getPageIdsForQueries(queries, g.client)
+  log.Printf("[GetPagesFromQuery] Response: pageIds '%s'", ids)
   rsp.Pageids = ids
   return nil
 }
