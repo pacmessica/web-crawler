@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>webcrawler frontend</title>
+    <script>
+      var serversocket = new WebSocket("ws://localhost:8080/get-pages");
+
+      // Write message on receive
+      serversocket.onmessage = function(e) {
+        document.getElementById('pages').innerHTML += "Pages: " + e.data + "<br>";
+      };
+
+      function senddata() {
+        var data = document.getElementById('sendtext').value;
+        serversocket.send(data);
+        document.getElementById('pages').innerHTML += "Word: " + data + "<br>";
+      }
+    </script>
+  </head>
+  <body>
+    <div>Enter word</div>
+    <input id="sendtext" type="text" />
+    <input type="button" id="sendBtn" value="search" onclick="senddata()"></input>
+    <div id='pages'></div>
+  </body>
+</html>
