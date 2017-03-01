@@ -34,3 +34,10 @@ go run frontend/main.go --registry=mdns
 ```
 http://localhost:8080/crawler.html
 ```
+example query:
+```
+{
+  "id": "query1",
+  "search": { "term": "hello" }
+}
+```
